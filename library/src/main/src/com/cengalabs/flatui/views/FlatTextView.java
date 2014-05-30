@@ -2,28 +2,30 @@ package com.cengalabs.flatui.views;
 
 import android.content.Context;
 import android.content.res.TypedArray;
+import android.graphics.Color;
 import android.graphics.Typeface;
 import android.graphics.drawable.GradientDrawable;
 import android.util.AttributeSet;
+import android.widget.TextView;
+
+import com.cengalabs.flatui.Attributes;
 import com.cengalabs.flatui.FlatUI;
 import com.cengalabs.flatui.R;
-import com.cengalabs.flatui.constants.Colors;
 
 /**
- * Created with IntelliJ IDEA.
  * User: eluleci
  * Date: 24.10.2013
  * Time: 21:09
  */
-public class FlatTextView extends android.widget.TextView implements Colors {
+public class FlatTextView extends TextView implements Attributes.AttributeChangeListener {
 
-    private int fontId = FlatUI.DEFAULT_FONT_FAMILY;
-    private int weight = FlatUI.DEFAULT_FONT_WEIGHT;
-    private int[] color;
+    private Attributes attributes;
+
     private int textColor = 2;
-    private int backgroundColor = -1;
-    private int customBackgroundColor = -1;
-    private int cornerRadius = 5;
+    private int backgroundColor = Attributes.INVALID;
+    private int customBackgroundColor = Attributes.INVALID;
+
+    private boolean hasOwnTextColor;
 
     public FlatTextView(Context context) {
         super(context);
@@ -40,46 +42,62 @@ public class FlatTextView extends android.widget.TextView implements Colors {
         init(attrs);
     }
 
-    public void setTheme(int theme) {
-        color = FlatUI.getColor(theme);
-        init(null);
-    }
-
     private void init(AttributeSet attrs) {
 
+        if (attributes == null)
+            attributes = new Attributes(this);
+
         if (attrs != null) {
-            TypedArray a = getContext().obtainStyledAttributes(attrs, R.styleable.CengaLabs);
 
-            int theme = a.getInt(R.styleable.CengaLabs_theme, FlatUI.DEFAULT_THEME);
-            color = FlatUI.getColor(theme);
+            // getting android default tags for textColor and textColorHint
+            hasOwnTextColor = attrs.getAttributeValue(FlatUI.androidStyleNameSpace, "textColor") != null;
 
-            fontId = a.getInt(R.styleable.CengaLabs_fontFamily, fontId);
-            weight = a.getInt(R.styleable.CengaLabs_fontWeight, weight);
-            textColor = a.getInt(R.styleable.CengaLabs_textColor, textColor);
-            backgroundColor = a.getInt(R.styleable.CengaLabs_backgroundColor, backgroundColor);
-            customBackgroundColor = a.getInt(R.styleable.CengaLabs_customBackgroundColor, customBackgroundColor);
-            cornerRadius = a.getInt(R.styleable.CengaLabs_cornerRadius, cornerRadius);
+            TypedArray a = getContext().obtainStyledAttributes(attrs, R.styleable.FlatTextView);
+
+            // getting common attributes
+            int customTheme = a.getResourceId(R.styleable.FlatTextView_theme, Attributes.DEFAULT_THEME);
+            attributes.setThemeSilent(customTheme, getResources());
+
+            attributes.setFontFamily(a.getString(R.styleable.FlatTextView_fontFamily));
+            attributes.setFontWeight(a.getString(R.styleable.FlatTextView_fontWeight));
+            attributes.setFontExtension(a.getString(R.styleable.FlatTextView_fontExtension));
+
+            attributes.setRadius(a.getDimensionPixelSize(R.styleable.FlatTextView_cornerRadius, Attributes.DEFAULT_RADIUS));
+            attributes.setBorderWidth(a.getDimensionPixelSize(R.styleable.FlatTextView_borderWidth, 0));
+
+            // getting view specific attributes
+            textColor = a.getInt(R.styleable.FlatTextView_textColor, textColor);
+            backgroundColor = a.getInt(R.styleable.FlatTextView_backgroundColor, backgroundColor);
+            customBackgroundColor = a.getInt(R.styleable.FlatTextView_customBackgroundColor, customBackgroundColor);
 
             a.recycle();
-        } else if (color == null) {
-            color = FlatUI.getColor(FlatUI.DEFAULT_THEME);
         }
 
-        Typeface typeface = FlatUI.getFont(getContext(), fontId, weight);
-        if (typeface != null) setTypeface(typeface);
-
-        if(backgroundColor != -1){
-            GradientDrawable gradientDrawable = new GradientDrawable();
-            gradientDrawable.setColor(color[backgroundColor]);
-            gradientDrawable.setCornerRadius(cornerRadius);
-            setBackgroundDrawable(gradientDrawable);
-        } else if(customBackgroundColor != -1) {
-            GradientDrawable gradientDrawable = new GradientDrawable();
+        GradientDrawable gradientDrawable = new GradientDrawable();
+        if (backgroundColor != Attributes.INVALID) {
+            gradientDrawable.setColor(attributes.getColor(backgroundColor));
+        } else if (customBackgroundColor != Attributes.INVALID) {
             gradientDrawable.setColor(customBackgroundColor);
-            gradientDrawable.setCornerRadius(cornerRadius);
-            setBackgroundDrawable(gradientDrawable);
+        } else {
+            gradientDrawable.setColor(Color.TRANSPARENT);
         }
+        gradientDrawable.setCornerRadius(attributes.getRadius());
+        gradientDrawable.setStroke(attributes.getBorderWidth(), attributes.getColor(textColor));
+        setBackgroundDrawable(gradientDrawable);
 
-        setTextColor(color[textColor]);
+        // setting the text color only if there is no android:textColor attribute used
+        if (!hasOwnTextColor) setTextColor(attributes.getColor(textColor));
+
+        Typeface typeface = FlatUI.getFont(getContext(), attributes);
+        if (typeface != null) setTypeface(typeface);
+    }
+
+    public Attributes getAttributes() {
+        return attributes;
+    }
+
+    @Override
+    public void onThemeChange() {
+        init(null);
     }
 }

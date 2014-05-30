@@ -4,32 +4,27 @@ import android.content.Context;
 import android.content.res.TypedArray;
 import android.graphics.Color;
 import android.graphics.Typeface;
-import android.graphics.drawable.Drawable;
-import android.graphics.drawable.LayerDrawable;
-import android.graphics.drawable.ShapeDrawable;
-import android.graphics.drawable.shapes.RoundRectShape;
+import android.graphics.drawable.GradientDrawable;
 import android.util.AttributeSet;
 import android.widget.EditText;
+
+import com.cengalabs.flatui.Attributes;
 import com.cengalabs.flatui.FlatUI;
 import com.cengalabs.flatui.R;
-import com.cengalabs.flatui.constants.Colors;
 
 /**
- * Created with IntelliJ IDEA.
  * User: eluleci
  * Date: 24.10.2013
  * Time: 21:09
  */
-public class FlatEditText extends EditText implements Colors {
+public class FlatEditText extends EditText implements Attributes.AttributeChangeListener {
 
-    private int fontId = FlatUI.DEFAULT_FONT_FAMILY;
-    private int fontWeight = FlatUI.DEFAULT_FONT_WEIGHT;
-    private int[] color;
-    private int radius = 5;
-    private int padding = 10;
-    private int border = 3;
+    private Attributes attributes;
+
     private int style = 0;
-    private int textAppearance = 0;
+
+    private boolean hasOwnTextColor;
+    private boolean hasOwnHintColor;
 
     public FlatEditText(Context context) {
         super(context);
@@ -46,69 +41,73 @@ public class FlatEditText extends EditText implements Colors {
         init(attrs);
     }
 
-    public void setTheme(int theme) {
-        color = FlatUI.getColor(theme);
-        init(null);
-    }
-
     private void init(AttributeSet attrs) {
 
+        if (attributes == null)
+            attributes = new Attributes(this);
+
         if (attrs != null) {
-            TypedArray a = getContext().obtainStyledAttributes(attrs, R.styleable.CengaLabs);
 
-            int theme = a.getInt(R.styleable.CengaLabs_theme, FlatUI.DEFAULT_THEME);
-            color = FlatUI.getColor(theme);
+            // getting android default tags for textColor and textColorHint
+            hasOwnTextColor = attrs.getAttributeValue(FlatUI.androidStyleNameSpace, "textColor") != null;
+            hasOwnHintColor = attrs.getAttributeValue(FlatUI.androidStyleNameSpace, "textColorHint") != null;
 
-            style = a.getInt(R.styleable.CengaLabs_fieldStyle, 0);
-            radius = a.getDimensionPixelSize(R.styleable.CengaLabs_cornerRadius, radius);
-            padding = a.getDimensionPixelSize(R.styleable.CengaLabs_textPadding, padding);
+            TypedArray a = getContext().obtainStyledAttributes(attrs, R.styleable.FlatEditText);
 
-            fontId = a.getInt(R.styleable.CengaLabs_fontFamily, fontId);
-            fontWeight = a.getInt(R.styleable.CengaLabs_fontWeight, fontWeight);
+            // getting common attributes
+            int customTheme = a.getResourceId(R.styleable.FlatEditText_theme, Attributes.DEFAULT_THEME);
+            attributes.setThemeSilent(customTheme, getResources());
 
-            textAppearance = a.getInt(R.styleable.CengaLabs_textAppearance, textAppearance);
+            attributes.setFontFamily(a.getString(R.styleable.FlatEditText_fontFamily));
+            attributes.setFontWeight(a.getString(R.styleable.FlatEditText_fontWeight));
+            attributes.setFontExtension(a.getString(R.styleable.FlatEditText_fontExtension));
+
+            attributes.setTextAppearance(a.getInt(R.styleable.FlatEditText_textAppearance, Attributes.DEFAULT_TEXT_APPEARANCE));
+            attributes.setRadius(a.getDimensionPixelSize(R.styleable.FlatEditText_cornerRadius, Attributes.DEFAULT_RADIUS));
+            attributes.setBorderWidth(a.getDimensionPixelSize(R.styleable.FlatEditText_borderWidth, Attributes.DEFAULT_BORDER_WIDTH));
+
+            // getting view specific attributes
+            style = a.getInt(R.styleable.FlatEditText_fieldStyle, 0);
 
             a.recycle();
-        } else if (color == null) {
-            color = FlatUI.getColor(FlatUI.DEFAULT_THEME);
         }
 
-        float[] outerR = new float[]{radius, radius, radius, radius, radius, radius, radius, radius};
-
-        // creating normal state drawable
-        ShapeDrawable normalFront = new ShapeDrawable(new RoundRectShape(outerR, null, null));
-        normalFront.setPadding(padding, padding, padding, padding);
-
-        ShapeDrawable normalBack = new ShapeDrawable(new RoundRectShape(outerR, null, null));
-        normalBack.setPadding(border, border, border, border);
+        GradientDrawable backgroundDrawable = new GradientDrawable();
+        backgroundDrawable.setCornerRadius(attributes.getRadius());
 
         if (style == 0) {             // flat
-            normalFront.getPaint().setColor(Color.TRANSPARENT);
-            normalBack.getPaint().setColor(color[2]);
-            setTextColor(color[3]);
+            if (!hasOwnTextColor) setTextColor(attributes.getColor(3));
+            backgroundDrawable.setColor(attributes.getColor(2));
+            backgroundDrawable.setStroke(0, attributes.getColor(2));
 
         } else if (style == 1) {      // box
-            normalFront.getPaint().setColor(Color.WHITE);
-            normalBack.getPaint().setColor(color[2]);
-            setTextColor(color[2]);
+            if (!hasOwnTextColor) setTextColor(attributes.getColor(2));
+            backgroundDrawable.setColor(Color.WHITE);
+            backgroundDrawable.setStroke(attributes.getBorderWidth(), attributes.getColor(2));
 
         } else if (style == 2) {      // transparent
-            normalFront.getPaint().setColor(Color.TRANSPARENT);
-            normalBack.getPaint().setColor(Color.TRANSPARENT);
-            setTextColor(color[1]);
+            if (!hasOwnTextColor) setTextColor(attributes.getColor(1));
+            backgroundDrawable.setColor(Color.TRANSPARENT);
+            backgroundDrawable.setStroke(attributes.getBorderWidth(), attributes.getColor(2));
         }
 
-        Drawable[] d = {normalBack, normalFront};
-        LayerDrawable normal = new LayerDrawable(d);
+        setBackgroundDrawable(backgroundDrawable);
 
-        setBackgroundDrawable(normal);
+        if (!hasOwnHintColor) setHintTextColor(attributes.getColor(3));
 
-        setHintTextColor(color[3]);
+        if (attributes.getTextAppearance() == 1) setTextColor(attributes.getColor(0));
+        else if (attributes.getTextAppearance() == 2) setTextColor(attributes.getColor(3));
 
-        if (textAppearance == 1) setTextColor(color[0]);
-        else if (textAppearance == 2) setTextColor(color[3]);
-
-        Typeface typeface = FlatUI.getFont(getContext(), fontId, fontWeight);
+        Typeface typeface = FlatUI.getFont(getContext(), attributes);
         if (typeface != null) setTypeface(typeface);
+    }
+
+    public Attributes getAttributes() {
+        return attributes;
+    }
+
+    @Override
+    public void onThemeChange() {
+        init(null);
     }
 }

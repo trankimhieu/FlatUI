@@ -1,159 +1,118 @@
 package com.cengalabs.flatui;
 
-import android.app.ActionBar;
 import android.app.Activity;
 import android.content.Context;
 import android.graphics.Typeface;
 import android.graphics.drawable.Drawable;
 import android.graphics.drawable.LayerDrawable;
 import android.graphics.drawable.PaintDrawable;
+import android.util.DisplayMetrics;
 import android.util.Log;
-
-import com.cengalabs.flatui.constants.Colors;
+import android.util.TypedValue;
 
 /**
- * Created with IntelliJ IDEA.
- * User: eluleci
- * Date: 25.10.2013
- * Time: 15:00
+ * This class contains some util methods and keeps theme constants.
  */
-public class FlatUI implements Colors {
+public class FlatUI {
 
-    public static final int DEFAULT_FONT_FAMILY = 2;
-    public static final int DEFAULT_FONT_WEIGHT = 1;
-    public static int DEFAULT_THEME = 5;
+    public static final String androidStyleNameSpace = "http://schemas.android.com/apk/res/android";
 
-    public static final int SAND = 0;
-    public static final int ORANGE = 1;
-    public static final int CANDY = 2;
-    public static final int BLOSSOM = 3;
-    public static final int GRAPE = 4;
-    public static final int DEEP = 5;
-    public static final int SKY = 6;
-    public static final int GRASS = 7;
-    public static final int DARK = 8;
-    public static final int SNOW = 9;
-    public static final int SEA = 10;
-    public static final int BLOOD = 11;
-
-    public static int[] getColor(int theme) {
-
-        if (theme == SAND)
-            return COLOR_SAND;
-        else if (theme == ORANGE)
-            return COLOR_ORANGE;
-        else if (theme == CANDY)
-            return COLOR_CANDY;
-        else if (theme == BLOSSOM)
-            return COLOR_BLOSSOM;
-        else if (theme == GRAPE)
-            return COLOR_GRAPE;
-        else if (theme == DEEP)
-            return COLOR_DEEP;
-        else if (theme == SKY)
-            return COLOR_SKY;
-        else if (theme == GRASS)
-            return COLOR_GRASS;
-        else if (theme == DARK)
-            return COLOR_DARK;
-        else if (theme == SNOW)
-            return COLOR_SNOW;
-        else if (theme == SEA)
-            return COLOR_SEA;
-        else if (theme == BLOOD)
-            return COLOR_BLOOD;
-
-        return COLOR_CANDY;
-    }
-
-    public static Typeface getFont(Context context, int fontId, int weight) {
-        String fontName = "";
-        String fontWeight = "";
-
-        if (fontId != 0) {
-
-            if (fontId == 1) fontName = "opensans";
-            else if (fontId == 2) fontName = "roboto";
-            else if (fontId == 3) fontName = "comfortaa";
-
-            switch (weight) {
-                case 0:
-                    fontWeight = "extralight.ttf";
-                    break;
-                case 1:
-                    fontWeight = "light.ttf";
-                    break;
-                case 2:
-                    fontWeight = "regular.ttf";
-                    break;
-                case 3:
-                    fontWeight = "bold.ttf";
-                    break;
-                case 4:
-                    fontWeight = "extrabold.ttf";
-                    break;
-            }
-
-            try {
-                return Typeface.createFromAsset(context.getAssets(),
-                        "fonts/" + fontName + "_" + fontWeight);
-            } catch (Exception e) {
-                Log.e("FlatUI", "Font files cannot be found. Please be sure that library assets" +
-                        " are included to project. If not, copy assets/fonts folder of the" +
-                        " library to your projects assets folder.");
-            }
-        }
-        return null;
-    }
+    public static final int SAND = R.array.sand;
+    public static final int ORANGE = R.array.orange;
+    public static final int CANDY = R.array.candy;
+    public static final int BLOSSOM = R.array.blossom;
+    public static final int GRAPE = R.array.grape;
+    public static final int DEEP = R.array.deep;
+    public static final int SKY = R.array.sky;
+    public static final int GRASS = R.array.grass;
+    public static final int DARK = R.array.dark;
+    public static final int SNOW = R.array.snow;
+    public static final int SEA = R.array.sea;
+    public static final int BLOOD = R.array.blood;
 
     /**
-     * Sets action bar drawable with given attributes. Can be used for standard Activity ActionBar.
-     * If you are using Action Bar Compatibility, you can use getActionBarDrawable() method with
-     * same attributes and apply drawable manually.
+     * Converts the default values to dp to be compatible with different screen sizes
      *
-     * @param activity context
-     * @param theme selected theme
-     * @param dark boolean for choosing dark colors or primary colors
-     * @param titleEnabled used for hiding/showing action bar title after changing drawable
+     * @param context
      */
-    public static void setActionBarTheme(Activity activity, int theme, boolean dark, boolean titleEnabled) {
+    public static void initDefaultValues(Context context) {
 
-        Drawable drawable = getActionBarDrawable(theme, dark);
-
-        ActionBar actionBar = activity.getActionBar();
-        actionBar.setBackgroundDrawable(drawable);
-        actionBar.setDisplayShowTitleEnabled(!titleEnabled);
-        actionBar.setDisplayShowTitleEnabled(titleEnabled);
+        Attributes.DEFAULT_BORDER_WIDTH = (int) dipToPx(context, Attributes.DEFAULT_BORDER_WIDTH);
+        Attributes.DEFAULT_RADIUS = (int) dipToPx(context, Attributes.DEFAULT_RADIUS);
+        Attributes.DEFAULT_SIZE = (int) dipToPx(context, Attributes.DEFAULT_SIZE);
     }
 
     /**
-     * Returns a suitable drawable for ActionBar with theme colors. Should be used in case of usage
-     * of Action Bar Compatibility library.
+     * Creates and returns the font file from given attributes.
      *
-     * @param theme selected theme
-     * @param dark boolean for choosing dark colors or primary colors
+     * @param context
+     * @param attributes
+     * @return
+     */
+    public static Typeface getFont(Context context, Attributes attributes) {
+
+        String fontPath = "fonts/" + attributes.getFontFamily()
+                + "_" + attributes.getFontWeight()
+                + "." + attributes.getFontExtension();
+
+        try {
+            return Typeface.createFromAsset(context.getAssets(), fontPath);
+        } catch (Exception e) {
+            Log.e("FlatUI", "Font file at " + fontPath + " cannot be found or the file is " +
+                    "not a valid font file. Please be sure that library assets are included " +
+                    "to project. If not, copy assets/fonts folder of the library to your " +
+                    "projects assets folder.");
+            return null;
+        }
+    }
+
+    public static Drawable getActionBarDrawable(Activity activity, int theme, boolean dark) {
+        return getActionBarDrawable(activity, theme, dark, 0);
+    }
+
+    /**
+     * Returns a suitable drawable for ActionBar with theme colors.
+     *
+     * @param theme        selected theme
+     * @param dark         boolean for choosing dark colors or primary colors
+     * @param borderBottom bottom border width
      * @return drawable to be used in ActionBar
      */
-    public static Drawable getActionBarDrawable(int theme, boolean dark) {
-        int[] color = getColor(theme);
+    public static Drawable getActionBarDrawable(Activity activity, int theme, boolean dark, float borderBottom) {
+        int[] colors = activity.getResources().getIntArray(theme);
 
-        int color1 = color[2];
-        int color2 = color[1];
+        int color1 = colors[2];
+        int color2 = colors[1];
 
         if (dark) {
-            color1 = color[1];
-            color2 = color[0];
+            color1 = colors[1];
+            color2 = colors[0];
         }
+
+        borderBottom = dipToPx(activity, borderBottom);
 
         PaintDrawable front = new PaintDrawable(color1);
         PaintDrawable bottom = new PaintDrawable(color2);
         Drawable[] d = {bottom, front};
         LayerDrawable drawable = new LayerDrawable(d);
-        drawable.setLayerInset(1, 0, 0, 0, 3);
+        drawable.setLayerInset(1, 0, 0, 0, (int) borderBottom);
         return drawable;
     }
 
+    /**
+     * Sets the default theme of the application. The views which doesn't have any theme attribute
+     * will have this defined default theme.
+     * <p/>
+     * IMPORTANT: This method should be called before setContentView method of the activity.
+     *
+     * @param theme
+     */
     public static void setDefaultTheme(int theme) {
-        DEFAULT_THEME = theme;
+        Attributes.DEFAULT_THEME = theme;
+    }
+
+    private static float dipToPx(Context context, float dp) {
+        DisplayMetrics metrics = context.getResources().getDisplayMetrics();
+        return TypedValue.applyDimension(TypedValue.COMPLEX_UNIT_DIP, dp, metrics);
     }
 }

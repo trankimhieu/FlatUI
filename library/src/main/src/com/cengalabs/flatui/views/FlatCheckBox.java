@@ -4,28 +4,29 @@ import android.content.Context;
 import android.content.res.TypedArray;
 import android.graphics.Color;
 import android.graphics.Typeface;
-import android.graphics.drawable.*;
+import android.graphics.drawable.Drawable;
+import android.graphics.drawable.GradientDrawable;
+import android.graphics.drawable.InsetDrawable;
+import android.graphics.drawable.LayerDrawable;
+import android.graphics.drawable.PaintDrawable;
+import android.graphics.drawable.StateListDrawable;
 import android.util.AttributeSet;
 import android.widget.CheckBox;
+
+import com.cengalabs.flatui.Attributes;
 import com.cengalabs.flatui.FlatUI;
 import com.cengalabs.flatui.R;
-import com.cengalabs.flatui.constants.Colors;
 
 /**
- * Created with IntelliJ IDEA.
  * User: eluleci
  * Date: 23.10.2013
  * Time: 22:18
  */
-public class FlatCheckBox extends CheckBox implements Colors {
+public class FlatCheckBox extends CheckBox implements Attributes.AttributeChangeListener {
 
-    private int[] color;
-    private int theme;
-    private int size = 34;
-    private int border = 5;
-    private int radius = 3;
-    private int fontId = FlatUI.DEFAULT_FONT_FAMILY;
-    private int fontWeight = FlatUI.DEFAULT_FONT_WEIGHT;
+    private Attributes attributes;
+
+    private int dotMargin = 2;
 
     public FlatCheckBox(Context context) {
         super(context);
@@ -42,72 +43,78 @@ public class FlatCheckBox extends CheckBox implements Colors {
         init(attrs);
     }
 
-    public void setTheme(int theme) {
-        this.theme = theme;
-        color = FlatUI.getColor(theme);
-        init(null);
-    }
-
     private void init(AttributeSet attrs) {
 
+        if (attributes == null)
+            attributes = new Attributes(this);
+
         if (attrs != null) {
-            TypedArray a = getContext().obtainStyledAttributes(attrs, R.styleable.CengaLabs);
+            TypedArray a = getContext().obtainStyledAttributes(attrs, R.styleable.FlatCheckBox);
 
-            theme = a.getInt(R.styleable.CengaLabs_theme, FlatUI.DEFAULT_THEME);
-            color = FlatUI.getColor(theme);
-            radius = a.getDimensionPixelSize(R.styleable.CengaLabs_cornerRadius, radius);
-            size = a.getDimensionPixelSize(R.styleable.CengaLabs_size, size);
+            // getting common attributes
+            int customTheme = a.getResourceId(R.styleable.FlatCheckBox_theme, Attributes.DEFAULT_THEME);
+            attributes.setThemeSilent(customTheme, getResources());
 
-            fontId = a.getInt(R.styleable.CengaLabs_fontFamily, fontId);
-            fontWeight = a.getInt(R.styleable.CengaLabs_fontWeight, fontWeight);
+            attributes.setFontFamily(a.getString(R.styleable.FlatButton_fontFamily));
+            attributes.setFontWeight(a.getString(R.styleable.FlatButton_fontWeight));
+            attributes.setFontExtension(a.getString(R.styleable.FlatCheckBox_fontExtension));
+
+            attributes.setSize(a.getDimensionPixelSize(R.styleable.FlatCheckBox_size, Attributes.DEFAULT_SIZE));
+            attributes.setRadius(a.getDimensionPixelSize(R.styleable.FlatCheckBox_cornerRadius, Attributes.DEFAULT_RADIUS));
+            attributes.setBorderWidth(attributes.getSize() / 10);
+
+            // getting view specific attributes
+            dotMargin = a.getDimensionPixelSize(R.styleable.FlatCheckBox_dotMargin, dotMargin);
 
             a.recycle();
-        } else if (color == null) {
-            color = FlatUI.getColor(FlatUI.DEFAULT_THEME);
         }
 
         // creating unchecked-enabled state drawable
         GradientDrawable uncheckedEnabled = new GradientDrawable();
-        uncheckedEnabled.setCornerRadius(radius);
-        uncheckedEnabled.setSize(size, size);
+        uncheckedEnabled.setCornerRadius(attributes.getRadius());
+        uncheckedEnabled.setSize(attributes.getSize(), attributes.getSize());
         uncheckedEnabled.setColor(Color.TRANSPARENT);
-        uncheckedEnabled.setStroke(border, color[2]);
+        uncheckedEnabled.setStroke(attributes.getBorderWidth(), attributes.getColor(2));
 
         // creating checked-enabled state drawable
         GradientDrawable checkedOutside = new GradientDrawable();
-        checkedOutside.setCornerRadius(radius);
-        checkedOutside.setSize(size, size);
+        checkedOutside.setCornerRadius(attributes.getRadius());
+        checkedOutside.setSize(attributes.getSize(), attributes.getSize());
         checkedOutside.setColor(Color.TRANSPARENT);
-        checkedOutside.setStroke(border, color[2]);
+        checkedOutside.setStroke(attributes.getBorderWidth(), attributes.getColor(2));
 
-        PaintDrawable checkedCore = new PaintDrawable(color[2]);
-        checkedCore.setCornerRadius(radius);
-        checkedCore.setIntrinsicHeight(size);
-        checkedCore.setIntrinsicWidth(size);
-        InsetDrawable checkedInside = new InsetDrawable(checkedCore, border + 2, border + 2, border + 2, border + 2);
+        PaintDrawable checkedCore = new PaintDrawable(attributes.getColor(2));
+        checkedCore.setCornerRadius(attributes.getRadius());
+        checkedCore.setIntrinsicHeight(attributes.getSize());
+        checkedCore.setIntrinsicWidth(attributes.getSize());
+        InsetDrawable checkedInside = new InsetDrawable(checkedCore,
+                attributes.getBorderWidth() + dotMargin, attributes.getBorderWidth() + dotMargin,
+                attributes.getBorderWidth() + dotMargin, attributes.getBorderWidth() + dotMargin);
 
         Drawable[] checkedEnabledDrawable = {checkedOutside, checkedInside};
         LayerDrawable checkedEnabled = new LayerDrawable(checkedEnabledDrawable);
 
         // creating unchecked-enabled state drawable
         GradientDrawable uncheckedDisabled = new GradientDrawable();
-        uncheckedDisabled.setCornerRadius(radius);
-        uncheckedDisabled.setSize(size, size);
+        uncheckedDisabled.setCornerRadius(attributes.getRadius());
+        uncheckedDisabled.setSize(attributes.getSize(), attributes.getSize());
         uncheckedDisabled.setColor(Color.TRANSPARENT);
-        uncheckedDisabled.setStroke(border, color[3]);
+        uncheckedDisabled.setStroke(attributes.getBorderWidth(), attributes.getColor(3));
 
         // creating checked-disabled state drawable
         GradientDrawable checkedOutsideDisabled = new GradientDrawable();
-        checkedOutsideDisabled.setCornerRadius(radius);
-        checkedOutsideDisabled.setSize(size, size);
+        checkedOutsideDisabled.setCornerRadius(attributes.getRadius());
+        checkedOutsideDisabled.setSize(attributes.getSize(), attributes.getSize());
         checkedOutsideDisabled.setColor(Color.TRANSPARENT);
-        checkedOutsideDisabled.setStroke(border, color[3]);
+        checkedOutsideDisabled.setStroke(attributes.getBorderWidth(), attributes.getColor(3));
 
-        PaintDrawable checkedCoreDisabled = new PaintDrawable(color[3]);
-        checkedCoreDisabled.setCornerRadius(radius);
-        checkedCoreDisabled.setIntrinsicHeight(size);
-        checkedCoreDisabled.setIntrinsicWidth(size);
-        InsetDrawable checkedInsideDisabled = new InsetDrawable(checkedCoreDisabled, border + 2, border + 2, border + 2, border + 2);
+        PaintDrawable checkedCoreDisabled = new PaintDrawable(attributes.getColor(3));
+        checkedCoreDisabled.setCornerRadius(attributes.getRadius());
+        checkedCoreDisabled.setIntrinsicHeight(attributes.getSize());
+        checkedCoreDisabled.setIntrinsicWidth(attributes.getSize());
+        InsetDrawable checkedInsideDisabled = new InsetDrawable(checkedCoreDisabled,
+                attributes.getBorderWidth() + dotMargin, attributes.getBorderWidth() + dotMargin,
+                attributes.getBorderWidth() + dotMargin, attributes.getBorderWidth() + dotMargin);
 
         Drawable[] checkedDisabledDrawable = {checkedOutsideDisabled, checkedInsideDisabled};
         LayerDrawable checkedDisabled = new LayerDrawable(checkedDisabledDrawable);
@@ -120,11 +127,20 @@ public class FlatCheckBox extends CheckBox implements Colors {
         states.addState(new int[]{android.R.attr.state_checked, -android.R.attr.state_enabled}, checkedDisabled);
         setButtonDrawable(states);
 
-        // setting padding for avoiding text to be appear on icon
-        setPadding(size / 4 * 5, 0, 0, 0);
-        setTextColor(color[2]);
+        // setting padding for avoiding text to appear on icon
+        setPadding(attributes.getSize() / 4 * 5, 0, 0, 0);
+        setTextColor(attributes.getColor(2));
 
-        Typeface typeface = FlatUI.getFont(getContext(), fontId, fontWeight);
+        Typeface typeface = FlatUI.getFont(getContext(), attributes);
         if (typeface != null) setTypeface(typeface);
+    }
+
+    public Attributes getAttributes() {
+        return attributes;
+    }
+
+    @Override
+    public void onThemeChange() {
+        init(null);
     }
 }
